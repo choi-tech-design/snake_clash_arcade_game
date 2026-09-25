@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Clash Desktop</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0d0f18;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+            cursor: none;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .hud-box {
+            background: rgba(15, 20, 35, 0.85);
+            border: 2px solid #00f3ff;
+            border-radius: 12px;
+            padding: 12px 20px;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+            backdrop-filter: blur(5px);
+        }
+        #timer-box {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffcc00;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+        #leaderboard {
+            min-width: 220px;
+        }
+        #leaderboard h3 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #00f3ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+            padding-bottom: 4px;
+        }
+        #leaderboard ol {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 13px;
+        }
+        #leaderboard li {
+            margin: 4px 0;
+            white-space: nowrap;
+        }
+        .hud-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        #minimap-container {
+            width: 160px;
+            height: 160px;
+            background: rgba(10, 15, 25, 0.9);
+            border: 2px solid #00f3ff;
+            border-radius: 50%;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+        }
+        #minimap-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        #controls-hint {
+            background: rgba(15, 20, 35, 0.85);
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 12px;
+            color: #a0aec0;
+        }
+        #crosshair-cursor {
+            position: fixed;
+            pointer-events: none;
+            font-size: 320px; 
+            line-height: 0;
+            color: #00f3ff;
+            font-weight: bold;
+            transform: translate(-50%, -50%);
+            z-index: 999;
+            text-shadow: 0 0 15px #00f3ff, 0 0 30px rgba(0, 243, 255, 0.5);
+            opacity: 0.85;
+        }
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(8, 10, 18, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            z-index: 10;
+        }
+        .overlay h1 {
+            font-size: 54px;
+            margin: 0 0 10px 0;
+            color: #00f3ff;
+            text-shadow: 0 0 25px rgba(0, 243, 255, 0.6);
+            letter-spacing: 2px;
+        }
+        .overlay p {
+            font-size: 16px;
+            color: #cbd5e0;
+            margin-bottom: 20px;
+            max-width: 500px;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .name-input {
+            background: rgba(20, 25, 45, 0.9);
+            border: 2px solid #00f3ff;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 18px;
+            color: #ffffff;
+            margin-bottom: 25px;
+            text-align: center;
+            outline: none;
+            width: 280px;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+        .name-input:focus {
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+        }
+        .btn {
+            background: linear-gradient(135deg, #00f3ff, #0077ff);
+            color: #0d0f18;
+            border: none;
+            padding: 14px 36px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.8);
+        }
+        #game-over-panel {
+            display: none;
+        }
+        .scoreboard-table {
+            background: rgba(20, 25, 45, 0.9);
+            border: 1px solid #00f3ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            min-width: 340px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .scoreboard-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+        }
+        .scoreboard-row:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="crosshair-cursor">+</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer">
+        <div class="hud-top">
+            <div class="hud-box" id="timer-box">03:00</div>
+            <div class="hud-box" id="leaderboard">
+                <h3>Top Snakes</h3>
+                <ol id="leaderboard-list"></ol>
+            </div>
+        </div>
+        <div class="hud-bottom">
+            <div id="minimap-container">
+                <canvas id="minimap-canvas" width="160" height="160"></canvas>
+            </div>
+            <div id="controls-hint">
+                <strong>Steer:</strong> Mouse Cursor / WASD / Arrow Keys<br>
+                <strong>Boost:</strong> Hold Left-Click or Spacebar
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="overlay">
+        <h1>SNAKE CLASH</h1>
+        <p>Enter your snake name, eat glowing orbs, and crash into rival snakes to absorb their mass! Your score permanently accumulates. Match lasts 3 minutes.</p>
+        <input type="text" id="player-name-input" class="name-input" value="Player" maxlength="15" placeholder="Enter your snake name">
+        <button class="btn" onclick="startGame()">START BATTLE</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-panel" class="overlay">
+        <h1 id="game-over-title">MATCH ENDED</h1>
+        <p id="game-over-subtitle">Here are the final standings:</p>
+        <div class="scoreboard-table" id="final-scores"></div>
+        <button class="btn" onclick="startGame()">PLAY AGAIN</button>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const minimapCanvas = document.getElementById('minimap-canvas');
+    const minimapCtx = minimapCanvas.getContext('2d');
+    const crosshairEl = document.getElementById('crosshair-cursor');
+
+    // World & Game Settings (3 minutes match duration)
+    const WORLD_SIZE = 4000;
+    const MATCH_DURATION = 180; 
+    let gameRunning = false;
+    let matchTimeLeft = MATCH_DURATION;
+    let timerInterval = null;
+    let playerName = "Player";
+
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let isBoosting = false;
+
+    // Camera
+    let camera = { x: 0, y: 0 };
+
+    // Entities
+    let snakes = [];
+    let foods = [];
+    const MAX_FOOD = 600;
+    const TOTAL_SNAKES = 21; // 1 player + 20 AI
+
+    const AI_NAMES = [
+        "Viper", "Cobra", "Python", "Mamba", "Boa", "Anaconda", 
+        "Rattler", "Titan", "Blaze", "Shadow", "Neon", "Venom", 
+        "Apex", "Stalker", "Phantom", "Drift", "Glow", "Byte", "Slash", "Zenith"
+    ];
+
+    const COLORS = [
+        '#00f3ff', '#ff0055', '#00ff66', '#ffaa00', '#9900ff', 
+        '#ffff00', '#ff00ff', '#00ffff', '#ff5500', '#77ff00'
+    ];
+
+    // Resize handling
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    window.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        crosshairEl.style.left = mouseX + 'px';
+        crosshairEl.style.top = mouseY + 'px';
+    });
+
+    window.addEventListener('mousedown', (e) => { if(e.button === 0) isBoosting = true; });
+    window.addEventListener('mouseup', (e) => { if(e.button === 0) isBoosting = false; });
+    window.addEventListener('keydown', (e) => {
+        if(e.code === 'Space') isBoosting = true;
+    });
+    window.addEventListener('keyup', (e) => {
+        if(e.code === 'Space') isBoosting = false;
+    });
+
+    // Food Pool Management
+    function initFood() {
+        foods = [];
+        for(let i = 0; i < MAX_FOOD; i++) {
+            foods.push({
+                x: Math.random() * WORLD_SIZE,
+                y: Math.random() * WORLD_SIZE,
+                radius: 4 + Math.random() * 3,
+                color: COLORS[Math.floor(Math.random() * COLORS.length)]
+            });
+        }
+    }
+
+    function respawnFood(f) {
+        f.x = Math.random() * WORLD_SIZE;
+        f.y = Math.random() * WORLD_SIZE;
+        f.radius = 4 + Math.random() * 3;
+        f.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+    }
+
+    // Snake Class
+    class Snake {
+        constructor(isPlayer, name, color) {
+            this.isPlayer = isPlayer;
+            this.name = name;
+            this.color = color;
+            this.score = 15;
+            this.totalScore = 15;
+            this.respawn();
+        }
+
+        respawn() {
+            this.x = 300 + Math.random() * (WORLD_SIZE - 600);
+            this.y = 300 + Math.random() * (WORLD_SIZE - 600);
+            this.angle = Math.random() * Math.PI * 2;
+            this.targetAngle = this.angle;
+            this.score = 15;
+            this.segments = [];
+            
+            const startLen = 15;
+            for(let i = 0; i < startLen; i++) {
+                this.segments.push({
+                    x: this.x - Math.cos(this.angle) * (i * 8),
+                    y: this.y - Math.sin(this.angle) * (i * 8)
+                });
+            }
+            
+            this.aiTimer = 0;
+            this.aiState = 'wander';
+        }
+
+        update() {
+            // Reduced speed by 15% (Base: 2.72 instead of 3.2, Boost: 4.93 instead of 5.8)
+            let speed = 2.72;
+            let boostCost = 0;
+
+            if (isBoosting && this.isPlayer && this.score > 12) {
+                speed = 4.93;
+                boostCost = 0.03;
+            } else if (!this.isPlayer && this.aiState === 'boost' && this.score > 20) {
+                speed = 4.42;
+                boostCost = 0.025;
+            }
+
+            if (boostCost > 0) {
+                this.score -= boostCost;
+                if (this.score < 10) this.score = 10;
+            }
+
+            if (!this.isPlayer) {
+                this.aiTimer--;
+                if (this.aiTimer <= 0) {
+                    this.aiTimer = 60 + Math.random() * 100;
+                    const rand = Math.random();
+                    if (rand < 0.5) {
+                        this.aiState = 'wander';
+                        this.targetAngle += (Math.random() - 0.5) * 2;
+                    } else if (rand < 0.8) {
+                        this.aiState = 'hunt';
+                    } else {
+                        this.aiState = 'boost';
+                    }
+                }
+
+                if (this.aiState === 'wander' || this.aiState === 'boost') {
+                    this.targetAngle += (Math.random() - 0.5) * 0.15;
+                    if (this.x < 300) this.targetAngle = 0;
+                    if (this.x > WORLD_SIZE - 300) this.targetAngle = Math.PI;
+                    if (this.y < 300) this.targetAngle = Math.PI / 2;
+                    if (this.y > WORLD_SIZE - 300) this.targetAngle = -Math.PI / 2;
+                } else if (this.aiState === 'hunt') {
+                    let targetX = WORLD_SIZE / 2, targetY = WORLD_SIZE / 2;
+                    let minDist = Infinity;
+                    for(let f of foods) {
+                        let d = (f.x - this.x)*(f.x - this.x) + (f.y - this.y)*(f.y - this.y);
+                        if(d < minDist) {
+                            minDist = d;
+                            targetX = f.x;
+                            targetY = f.y;
+                        }
+                    }
+                    this.targetAngle = Math.atan2(targetY - this.y, targetX - this.x);
+                }
+            } else {
+                const worldMouseX = mouseX + camera.x;
+                const worldMouseY = mouseY + camera.y;
+                this.targetAngle = Math.atan2(worldMouseY - this.y, worldMouseX - this.x);
+            }
+
+            let angleDiff = this.targetAngle - this.angle;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            this.angle += angleDiff * 0.12;
+
+            this.x += Math.cos(this.angle) * speed;
+            this.y += Math.sin(this.angle) * speed;
+
+            if (this.x < 10 || this.x > WORLD_SIZE - 10 || this.y < 10 || this.y > WORLD_SIZE - 10) {
+                if (this.isPlayer) {
+                    this.x = Math.max(20, Math.min(WORLD_SIZE - 20, this.x));
+                    this.y = Math.max(20, Math.min(WORLD_SIZE - 20, this.y));
+                } else {
+                    this.respawn();
+                    return;
+                }
+            }
+
+            const targetSegmentsCount = Math.floor(this.score);
+            while(this.segments.length < targetSegmentsCount) {
+                let last = this.segments[this.segments.length - 1] || {x: this.x, y: this.y};
+                this.segments.push({x: last.x, y: last.y});
+            }
+            while(this.segments.length > targetSegmentsCount) {
+                this.segments.pop();
+            }
+
+            let leadX = this.x;
+            let leadY = this.y;
+            const spacing = 7;
+            for(let i = 0; i < this.segments.length; i++) {
+                let seg = this.segments[i];
+                let dx = leadX - seg.x;
+                let dy = leadY - seg.y;
+                let dist = Math.hypot(dx, dy);
+                if (dist > spacing) {
+                    let angle = Math.atan2(dy, dx);
+                    seg.x = leadX - Math.cos(angle) * spacing;
+                    seg.y = leadY - Math.sin(angle) * spacing;
+                }
+                leadX = seg.x;
+                leadY = seg.y;
+            }
+        }
+
+        draw() {
+            // Highly aggressive dynamic LOD scaling to handle multiple giant snakes simultaneously without lag
+            let step = 1;
+            let sizeScale = 1;
+            if (this.score > 400) {
+                step = 5;
+                sizeScale = 2.6;
+            } else if (this.score > 200) {
+                step = 3;
+                sizeScale = 1.9;
+            } else if (this.score > 80) {
+                step = 2;
+                sizeScale = 1.4;
+            }
+
+            for (let i = this.segments.length - 1; i >= 0; i -= step) {
+                let seg = this.segments[i];
+                // Strict Frustum Culling with safety padding
+                if (seg.x < camera.x - 100 || seg.x > camera.x + canvas.width + 100 ||
+                    seg.y < camera.y - 100 || seg.y > camera.y + canvas.height + 100) {
+                    continue;
+                }
+
+                let radius = Math.max(6, Math.min(18, 5 + (this.score * 0.08))) * sizeScale;
+                ctx.beginPath();
+                ctx.arc(seg.x - camera.x, seg.y - camera.y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            // Draw Head
+            ctx.beginPath();
+            let headRadius = Math.max(7, Math.min(20, 6 + (this.score * 0.08)));
+            ctx.arc(this.x - camera.x, this.y - camera.y, headRadius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const eyeOffset = headRadius * 0.5;
+            const leftEyeX = this.x - camera.x + Math.cos(this.angle - 0.6) * eyeOffset;
+            const leftEyeY = this.y - camera.y + Math.sin(this.angle - 0.6) * eyeOffset;
+            const rightEyeX = this.x - camera.x + Math.cos(this.angle + 0.6) * eyeOffset;
+            const rightEyeY = this.y - camera.y + Math.sin(this.angle + 0.6) * eyeOffset;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(leftEyeX, leftEyeY, headRadius * 0.3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(rightEyeX, rightEyeY, headRadius * 0.3, 0, Math.PI*2); ctx.fill();
+
+            ctx.fillStyle = '#000000';
+            ctx.beginPath(); ctx.arc(leftEyeX + Math.cos(this.angle)*2, leftEyeY + Math.sin(this.angle)*2, headRadius * 0.15, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(rightEyeX + Math.cos(this.angle)*2, rightEyeY + Math.sin(this.angle)*2, headRadius * 0.15, 0, Math.PI*2); ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(this.name, this.x - camera.x, this.y - camera.y - headRadius - 10);
+        }
+    }
+
+    function initGame() {
+        const inputVal = document.getElementById('player-name-input').value.trim();
+        if(inputVal.length > 0) {
+            playerName = inputVal;
+        }
+
+        matchTimeLeft = MATCH_DURATION;
+        initFood();
+        snakes = [];
+
+        snakes.push(new Snake(true, playerName, '#00f3ff'));
+
+        for(let i = 0; i < TOTAL_SNAKES - 1; i++) {
+            snakes.push(new Snake(false, AI_NAMES[i % AI_NAMES.length], COLORS[(i + 1) % COLORS.length]));
+        }
+
+        if(timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if(!gameRunning) return;
+            matchTimeLeft--;
+            updateTimerDisplay();
+            if(matchTimeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+        updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+        const mins = Math.floor(matchTimeLeft / 60).toString().padStart(2, '0');
+        const secs = (matchTimeLeft % 60).toString().padStart(2, '0');
+        document.getElementById('timer-box').innerText = `${mins}:${secs}`;
+    }
+
+    function startGame() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('game-over-panel').style.display = 'none';
+        initGame();
+        gameRunning = true;
+    }
+
+    function endGame() {
+        gameRunning = false;
+        clearInterval(timerInterval);
+
+        const sorted = [...snakes].sort((a,b) => b.totalScore - a.totalScore);
+        
+        let html = '';
+        sorted.forEach((s, idx) => {
+            html += `<div class="scoreboard-row">
+                <span>#${idx+1} ${s.name}</span>
+                <span>Total Score: ${Math.floor(s.totalScore)}</span>
+            </div>`;
+        });
+        document.getElementById('final-scores').innerHTML = html;
+        
+        const playerRank = sorted.findIndex(s => s.isPlayer) + 1;
+        document.getElementById('game-over-title').innerText = playerRank === 1 ? 'VICTORY! USER WINS!' : `MATCH ENDED (Rank #${playerRank})`;
+        document.getElementById('game-over-panel').style.display = 'flex';
+    }
+
+    function gameLoop() {
+        if (gameRunning) {
+            update();
+            render();
+        }
+        requestAnimationFrame(gameLoop);
+    }
+
+    function update() {
+        const player = snakes.find(s => s.isPlayer);
+        if (player) {
+            camera.x = player.x - canvas.width / 2;
+            camera.y = player.y - canvas.height / 2;
+            camera.x = Math.max(0, Math.min(WORLD_SIZE - canvas.width, camera.x));
+            camera.y = Math.max(0, Math.min(WORLD_SIZE - canvas.height, camera.y));
+        }
+
+        for (let s of snakes) {
+            s.update();
+        }
+
+        for (let s of snakes) {
+            let headRadius = Math.max(7, Math.min(20, 6 + (s.score * 0.08)));
+            for (let f of foods) {
+                let dist = Math.hypot(s.x - f.x, s.y - f.y);
+                if (dist < headRadius + f.radius) {
+                    s.score += 0.5;
+                    s.totalScore += 0.5;
+                    respawnFood(f);
+                }
+            }
+        }
+
+        for (let i = 0; i < snakes.length; i++) {
+            let s1 = snakes[i];
+            let s1HeadR = Math.max(7, Math.min(20, 6 + (s1.score * 0.08)));
+
+            for (let j = 0; j < snakes.length; j++) {
+                if (i === j) continue;
+                let s2 = snakes[j];
+
+                for (let seg of s2.segments) {
+                    let dist = Math.hypot(s1.x - seg.x, s1.y - seg.y);
+                    if (dist < s1HeadR + 6) {
+                        let absorbedAmount = s2.score;
+                        s1.score += absorbedAmount;
+                        s1.totalScore += absorbedAmount;
+                        s2.respawn();
+                        break;
+                    }
+                }
+            }
+        }
+
+        const sortedSnakes = [...snakes].sort((a,b) => b.totalScore - a.totalScore);
+        let lbHtml = '';
+        for (let i = 0; i < Math.min(5, sortedSnakes.length); i++) {
+            let s = sortedSnakes[i];
+            lbHtml += `<li>${i+1}. ${s.name} (${Math.floor(s.totalScore)})</li>`;
+        }
+        document.getElementById('leaderboard-list').innerHTML = lbHtml;
+    }
+
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = '#161b2c';
+        ctx.lineWidth = 1;
+        const gridSize = 80;
+        const startX = -camera.x % gridSize;
+        const startY = -camera.y % gridSize;
+
+        ctx.beginPath();
+        for (let x = startX; x < canvas.width; x += gridSize) {
+            ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
+        }
+        for (let y = startY; y < canvas.height; y += gridSize) {
+            ctx.moveTo(0, y); ctx.lineTo(canvas.width, y);
+        }
+        ctx.stroke();
+
+        ctx.strokeStyle = '#00f3ff';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(-camera.x, -camera.y, WORLD_SIZE, WORLD_SIZE);
+
+        for (let f of foods) {
+            if (f.x > camera.x - 50 && f.x < camera.x + canvas.width + 50 &&
+                f.y > camera.y - 50 && f.y < camera.y + canvas.height + 50) {
+                ctx.beginPath();
+                ctx.arc(f.x - camera.x, f.y - camera.y, f.radius, 0, Math.PI * 2);
+                ctx.fillStyle = f.color;
+                ctx.fill();
+            }
+        }
+
+        const sortedByRender = [...snakes].sort((a, b) => a.score - b.score);
+        for (let s of sortedByRender) {
+            s.draw();
+        }
+
+        renderMinimap();
+    }
+
+    function renderMinimap() {
+        minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+        const scale = minimapCanvas.width / WORLD_SIZE;
+
+        for (let s of snakes) {
+            minimapCtx.fillStyle = s.isPlayer ? '#00ffff' : s.color;
+            minimapCtx.beginPath();
+            minimapCtx.arc(s.x * scale, s.y * scale, s.isPlayer ? 4 : 2, 0, Math.PI * 2);
+            minimapCtx.fill();
+        }
+    }
+
+    requestAnimationFrame(gameLoop);
+</script>
+
+</body>
+</html>
